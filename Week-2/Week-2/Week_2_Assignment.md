@@ -30,7 +30,7 @@ Welcome to your Week 2 assignment for the WnCC Machine Learning Learner Space! T
   - What was the accuracy of your MLP?
   - What surprised you? What didn't work as expected?
 
-📎 [Open in Colab — Sentiment Analyser Starter](https://colab.research.google.com/drive/PLACEHOLDER_MAIN_LINK?usp=sharing)
+📎 [Open in Colab — Sentiment Analyser Starter]([https://colab.research.google.com/drive/PLACEHOLDER_MAIN_LINK?usp=sharing](https://colab.research.google.com/drive/1skoJLLBET9wiQMjxhV9Ur4gII-Cd0t-V#scrollTo=oQl6NyDI17fY))
 
 ---
 
@@ -49,7 +49,7 @@ Welcome to your Week 2 assignment for the WnCC Machine Learning Learner Space! T
 
 **Bonus Challenge:** Swap out the one-hot input for a learned embedding layer. Does the model perform better? Can you visualise the character embeddings using PCA?
 
-📎 [Open in Colab — Name Completer Starter](https://colab.research.google.com/drive/PLACEHOLDER_HACKER_LINK?usp=sharing)
+📎 [Open in Colab — Name Completer Starter]([https://colab.research.google.com/drive/PLACEHOLDER_HACKER_LINK?usp=sharing](https://colab.research.google.com/drive/1Zw-nG6kCzLc0XeCb3meV7NUPZly9i0a_#scrollTo=pzwA_0r034IR))
 
 > 💡 **This track is directly inspired by Andrej Karpathy's makemore project** — one of the best pedagogical ML projects ever built. If you complete this, you will have a real intuition for how character-level language models work.
 
