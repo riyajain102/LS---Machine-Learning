@@ -2,7 +2,7 @@
 
 [Home](../../README.md) > [Week 4](../README.md) > Reinforcement Learning
 
-| Week 4 · Topic 1 of 7 · Prerequisites: None |
+| Week 4 · Topic 1 of 6 · Prerequisites: None |
 |---|
 
 ---
