@@ -1,138 +1,121 @@
-# Vision Models
+# Audio Models
 
-[Home](../../README.md) > [Week 4](../README.md) > Vision Models
+[Home](../../README.md) > [Week 4](../README.md) > Audio Models
 
-| Week 4 · Topic 5 of 6 · Prerequisites: Week 3 Transformer Architecture |
+| Week 4 · Topic 6 of 6 · Prerequisites: [Vision Models](../05-Vision-Models/README.md) (helpful) |
 |---|
+
+> ⚠️ **Priority note:** This topic is **lower priority** relative to the
+> others this week. Read it for breadth and to see how the spectrogram
+> trick and transformer decoder ideas transfer to a new modality. Don't
+> spend more than 2–3 hours here.
 
 ---
 
 ## Why This Topic
 
-Once you know the transformer architecture, vision models are mostly "the
-same idea, different tokenization." Understanding that connection is what
-makes CLIP, Stable Diffusion's text conditioning ([Topic 4](../04-Stable-Diffusion/README.md)),
-and modern vision-language chat models all click as variations on one
-theme rather than separate things to memorize.
+Audio models are a good test of whether the ideas from earlier topics
+actually generalize. If you understand "turn the input into something
+that looks like an image" (from Vision Models) and "predict the next token
+autoregressively" (from the transformer architecture), most of ASR and TTS
+is just those two ideas applied to sound.
 
 ---
 
 ## What You Will Learn
 
-- Why CNNs' locality assumption is both their strength and their ceiling
-- How Vision Transformer (ViT) applies the exact same self-attention
-  machinery from NLP to image patches
-- How CLIP connects vision and language via contrastive learning
-- How modern vision-language models (VLMs) are built on top of an existing LLM
+- How raw audio becomes a spectrogram a model can actually consume
+- Whisper's encoder-decoder architecture for speech recognition
+- Two dominant approaches to text-to-speech: diffusion-based and
+  token-based
+- How self-supervised audio representation learning mirrors masked
+  language modeling
 
 ---
 
 ## Why It Matters
 
-| Classical CNN Limitation | Transformer-era Solution |
+| Idea From Earlier This Week | Audio Application |
 |---|---|
-| Built-in locality bias limits long-range relationships | Self-attention has no locality assumption — any patch can attend to any other |
-| Vision and language live in separate architectures | ViT uses the same transformer block as text models, so they compose naturally |
-| No native way to connect an image to a text description | CLIP's contrastive loss places matching (image, caption) pairs close in a shared embedding space |
-| Vision-language systems needed training from scratch | A VLM can reuse a pretrained LLM + a lightweight projection layer instead |
+| Spectrogram-as-image ([Topic 5](../05-Vision-Models/README.md)) | Audio is converted to a 2D log-mel spectrogram and processed with the same conv/transformer toolkit used for vision |
+| Diffusion ([Topic 4](../04-Stable-Diffusion/README.md)) | Diffusion/flow-based TTS applies the same denoising framework directly to audio, conditioned on text |
+| Autoregressive next-token prediction | Token-based TTS treats speech generation as next-audio-token prediction, reusing the exact transformer decoder machinery behind text LLMs |
 
 ---
 
 ## Concepts in Depth
 
-### 🖼️ The CNN Era (for Context)
+### 🔊 Turning Audio Into Something a Model Can Consume
 
-CNNs exploit two properties of images: **locality** (nearby pixels are
-related) and **translation invariance** (a cat is a cat wherever it
-appears). A small filter slides across the image, sharing weights across
-positions, and stacking layers builds edges → textures → parts → objects.
-This inductive bias makes CNNs data-efficient — but it's also a ceiling:
-built-in locality limits how well they capture long-range relationships
-across an image.
+Raw audio is a very high sample-rate 1D waveform (16,000–48,000 samples/
+second) — too dense to feed directly into a transformer at reasonable
+sequence lengths. The near-universal fix: convert audio into a **log-mel
+spectrogram**, a 2D representation of frequency content over time,
+produced via short-time Fourier transforms binned onto a mel scale
+(weighted to match human hearing). This turns audio into something that
+looks like an image.
 
-### 🧩 Vision Transformer (ViT)
+### 🎙️ Automatic Speech Recognition — Whisper
 
-ViT (Dosovitskiy et al., 2020) drops convolution's inductive bias entirely
-and applies transformer self-attention to images:
-1. Split the image into fixed-size patches (e.g. 16×16 pixels).
-2. Flatten and linearly project each patch into an embedding — exactly
-   like a token embedding in text.
-3. Add positional embeddings (patches have 2D position, unlike text's
-   linear order — this matters even more here).
-4. Feed the sequence of patch embeddings through a standard transformer
-   encoder.
-5. A special `[CLS]` token's output embedding is used for classification.
+Whisper (Radford et al., 2022) is a fairly standard encoder-decoder
+transformer:
+- **Encoder** — consumes the log-mel spectrogram of a 30-second audio chunk.
+- **Decoder** — autoregressively generates text tokens, cross-attending to
+  the encoder's output — the same cross-attention mechanism used in the
+  original transformer and in Stable Diffusion's text conditioning.
+- Special task tokens in the decoder's input let one model handle multiple
+  tasks: transcription, translation-to-English, language ID, timestamps —
+  all switched by the prompt.
 
-With less built-in structure than a CNN, ViT needs *more* data to reach
-the same performance — but with enough pretraining data it matches or
-beats CNNs, and unifies vision architecture with the rest of the
-transformer ecosystem.
+What made Whisper notable wasn't architectural novelty — it's a fairly
+standard transformer — but training at large scale on ~680k hours of
+weakly-labeled, diverse multilingual audio, which gave it strong
+robustness to accents and noise without task-specific fine-tuning.
 
-### 🔗 CLIP — Connecting Vision and Language
+### 🗣️ Text-to-Speech
 
-CLIP (Radford et al., 2021) trains an image encoder and text encoder
-*jointly* — not to classify into fixed categories, but to place matching
-(image, caption) pairs close together in a shared embedding space, via a
-**contrastive loss**: for a batch of N pairs, compute similarity between
-every image and every text, push true pairs up and mismatched pairs down.
+Two dominant modern approaches:
+- **Diffusion/flow-based TTS** — apply the same denoising framework from
+  [Topic 4](../04-Stable-Diffusion/README.md) directly to audio (or an
+  intermediate spectrogram/latent), conditioned on text.
+- **Neural codec / token-based TTS** (e.g. VALL-E) — use a neural audio
+  codec to compress audio into discrete tokens, then train a standard
+  autoregressive transformer to predict audio tokens conditioned on text —
+  treating speech generation as "just" another next-token-prediction problem.
 
-The result is zero-shot classification (compare an image embedding to
-candidate text-label embeddings, no fine-tuning) — and, more importantly,
-CLIP's image encoder became the standard backbone feeding vision into
-Stable Diffusion's text conditioning and most vision-language models.
+### 🧠 Audio Representation Learning
 
-### 👁️ Vision-Language Models (VLMs)
-
-Modern multimodal chat models generally follow this pattern:
-1. A vision encoder (often ViT/CLIP-style) turns an image into a sequence
-   of embeddings — "image tokens."
-2. A lightweight projection layer maps these into the LLM's text-token
-   embedding space.
-3. Image and text tokens are concatenated and fed into the LLM together,
-   so the model attends across both modalities with the same transformer
-   machinery used for text.
-
-This is why VLMs can be built relatively cheaply on top of an existing
-LLM — you're mainly training the projection layer, not learning vision and
-language from scratch together.
-
-### 🔬 Other Things Worth Knowing
-
-- **Object detection/segmentation** (YOLO, Segment Anything) — same
-  encoder backbones, different task framing (boxes/masks vs. a label).
-- **Self-supervised vision pretraining** (DINO, MAE) — learn good visual
-  representations without labels, by predicting masked patches or matching
-  augmented views. MAE is a direct conceptual cousin of JEPA
-  ([Topic 7](../07-Bleeding-Edge-SSMs-JEPA/README.md)).
+Models like **wav2vec 2.0** and **HuBERT** learn general audio
+representations via self-supervised objectives — predicting masked
+portions of the audio's own learned discrete units, conceptually similar
+to BERT's masked language modeling and to MAE/JEPA in vision. These
+representations transfer well to speaker ID, emotion recognition, and
+low-resource ASR.
 
 ---
 
 ## Resources
 
-**Watch:**
-- [OpenAI CLIP: Connecting Text and Images (Paper Explained) — Yannic Kilcher](https://www.youtube.com/watch?v=T9XSU0pKX2E) — clear walkthrough of the contrastive objective and why it works.
-
 **Read:**
-- [AI Summer — Transformers in Computer Vision](https://theaisummer.com/transformers-computer-vision/) — good overview of ViT and its variants (Swin, DINO) with diagrams.
+- [Hugging Face Audio Course](https://huggingface.co/learn/audio-course) — free, well-sequenced practical intro covering spectrograms through ASR/TTS pipelines.
 
 **Deep Dive (papers):**
-- [Dosovitskiy et al., *An Image is Worth 16x16 Words* (ViT)](https://arxiv.org/abs/2010.11929)
-- [Radford et al., *Learning Transferable Visual Models From Natural Language Supervision* (CLIP)](https://arxiv.org/abs/2103.00020)
-- [Liu et al., *Visual Instruction Tuning* (LLaVA)](https://arxiv.org/abs/2304.08485) — a clean, readable VLM architecture/training recipe.
+- [Radford et al., *Robust Speech Recognition via Large-Scale Weak Supervision* (Whisper)](https://arxiv.org/abs/2212.04356)
+- [Baevski et al., *wav2vec 2.0*](https://arxiv.org/abs/2006.11477)
+- [Wang et al., *Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers* (VALL-E)](https://arxiv.org/abs/2301.02111)
 
 ---
 
 ## Before You Move On
 
-- What specifically does ViT give up by dropping convolution's inductive
-  bias, and what does it gain?
-- Describe CLIP's contrastive loss in your own words — what's being
-  pushed together, what's being pushed apart?
-- How does a VLM reuse a pretrained LLM rather than training vision and
-  language from scratch together?
-- Can you name one self-supervised vision method and say, at a high
-  level, what it's predicting?
+- Why can't you just feed raw waveform samples directly into a
+  transformer at a reasonable sequence length?
+- What role does cross-attention play in Whisper's decoder?
+- Name the two dominant TTS approaches and one key difference between them.
+- How does wav2vec 2.0's pretraining objective echo something you learned
+  earlier this week?
 
 ---
 
-[Previous: Stable Diffusion](../04-Stable-Diffusion/README.md) | [Week 4 Overview](../README.md) | [Next: Audio Models](../06-Audio-Models/README.md)
+[Previous: Vision Models](../05-Vision-Models/README.md) | [Week 4 Overview](../README.md) 
+
